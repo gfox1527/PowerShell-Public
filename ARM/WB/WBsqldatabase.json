@@ -4,7 +4,7 @@
     "parameters": {
         "sqlDBName": {
             "type": "string",
-            "defaultValue": "SampleDB",
+            "defaultValue": "[concat (parameters('sqlDBName'))]",
             "metadata": {
                 "description": "The name of the SQL Database."
             }
@@ -89,9 +89,9 @@
     "variables": {
         "subscriptionId": "[subscription().id]",
         "resourceGroupName": "[resourceGroup().name]",
-        "server_name": "[concat('wbgmssql', parameters('instance_name'))]",
-        "endpoint_name": "[concat(variables('server_name'), '-endpoint')]",
-        "privateLinkServiceId": "[concat (variables('subscriptionId') , '/resourceGroups/',variables('resourceGroupName') , '/providers/Microsoft.Sql/servers/' , variables('server_name'))]",
+        "instance_name": "[concat('wbgmssql', parameters('instance_name'))]",
+        "endpoint_name": "[concat(variables('instance_name'), '-endpoint')]",
+        "privateLinkServiceId": "[concat (variables('subscriptionId') , '/resourceGroups/',variables('resourceGroupName') , '/providers/Microsoft.Sql/servers/' , variables('instance_name'))]",
         "subnet_id": "[concat (variables('subscriptionId') , '/resourceGroups/' , parameters('resourceGroup_Vnet') , '/providers/Microsoft.Network/virtualNetworks/' , parameters('VNet'), '/subnets/' , parameters('Sub_Net'))]",
         "KeyVaultKeyName": "[concat(parameters('Key_vault'), '/',parameters('Key_Name'))]",
         "ServerKeyName": "[concat(parameters('Key_vault'),'_',parameters('Key_Name'),'_current')]"
@@ -99,8 +99,8 @@
     "resources": [
         {
             "type": "Microsoft.Sql/servers",
-            "apiVersion": "2020-02-02-preview",
-            "name": "[variables('server_name')]",
+            "apiVersion": "2021-02-01-preview",
+            "name": "[variables('instance_name')]",
             "location": "[parameters('location')]",
             "identity": {
                 "type": "SystemAssigned"
@@ -111,8 +111,8 @@
             },
             "resources": [
                 {
-                    "type": "databases",
-                    "apiVersion": "2020-02-02-preview",
+                    "type": "Microsoft.Sql/servers",
+                    "apiVersion": "2021-02-01-preview",
                     "name": "[parameters('sqlDBName')]",
                     "location": "[parameters('location')]",
                     "sku": {
@@ -132,20 +132,20 @@
                         "zoneRedundant": false
                     },
                     "dependsOn": [
-                        "[resourceId('Microsoft.Sql/servers', concat(variables('server_name')))]"
+                        "[resourceId('Microsoft.Sql/servers', concat(variables('instance_name')))]"
                     ],
                     "resources": [
                         {
                             "comments": "Transparent Data Encryption",
-                            "name": "current",
-                            "type": "transparentDataEncryption",
-                            "apiVersion": "2020-02-02-preview",
+                            "name": "[concat(parameters('instance_name'), '/Test011/Current')]",
+                            "type": "Microsoft.Sql/servers/databases/transparentDataEncryption",
+                            "apiVersion": "2021-02-01-preview",
                             "properties": {
                                 "state": "Enabled"
                             },
                             "dependsOn": [
-                                "[resourceId('Microsoft.Sql/servers/databases', variables('server_name'), parameters('sqlDBName'))]"
-                            ]            
+                                "[resourceId('Microsoft.Sql/servers/databases', parameters('instance_name'), 'Test011')]"
+                            ]
                         }
                     ]
                 },
@@ -175,7 +175,7 @@
                         }
                     },
                     "dependsOn": [
-                        "[resourceId('Microsoft.Sql/servers', concat(variables('server_name')))]"
+                        "[resourceId('Microsoft.Sql/servers', concat(variables('instance_name')))]"
                     ]
                 }
             ]
@@ -194,7 +194,7 @@
                 "keySize":2048
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', concat(variables('server_name')))]"
+                "[resourceId('Microsoft.Sql/servers', concat(variables('instance_name')))]"
             ]
         },
         {
@@ -203,7 +203,7 @@
             "name": "addAccessPolicy",
             "resourceGroup": "[variables('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', variables('server_name'))]"
+                "[resourceId('Microsoft.Sql/servers', variables('instance_name'))]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -219,7 +219,7 @@
                                 "accessPolicies": [
                                     {
                                         "tenantId": "[subscription().tenantId]",
-                                        "objectId": "[reference(resourceId('Microsoft.Sql/servers/', variables('server_name')), '2019-06-01-preview', 'Full').identity.principalId]",
+                                        "objectId": "[reference(resourceId('Microsoft.Sql/servers/', variables('instance_name')), '2019-06-01-preview', 'Full').identity.principalId]",
                                         "permissions": {
                                             "keys": [
                                                 "get",
@@ -236,12 +236,12 @@
             }
         },
         {
-            "name": "[concat(variables('server_name'), '/', variables('ServerKeyName'))]",
+            "name": "[concat(variables('instance_name'), '/', variables('ServerKeyName'))]",
             "type": "Microsoft.Sql/servers/keys",
             "apiVersion": "2020-02-02-preview",
             "dependsOn": [
                 "addAccessPolicy",
-                "[resourceId('Microsoft.Sql/servers', variables('server_name'))]"
+                "[resourceId('Microsoft.Sql/servers', variables('instance_name'))]"
             ],
             "properties": {
                 "serverKeyType": "AzureKeyVault",
@@ -251,7 +251,7 @@
         {
             "type": "Microsoft.Sql/servers/encryptionProtector",
             "apiVersion": "2021-02-01-preview",
-            "name": "[concat(variables('server_name'), '/current')]",
+            "name": "[concat(variables('instance_name'), '/current')]",
             "properties": {
                 "autoRotationEnabled": false,
                 "serverKeyName": "[variables('ServerKeyName')]",
@@ -259,7 +259,7 @@
             },
             "dependsOn": [
                 "addAccessPolicy",
-                "[resourceId('Microsoft.SQL/servers/keys', variables('server_name'), variables('ServerKeyName'))]"
+                "[resourceId('Microsoft.SQL/servers/keys', variables('instance_name'), variables('ServerKeyName'))]"
             ]
         },
         {
