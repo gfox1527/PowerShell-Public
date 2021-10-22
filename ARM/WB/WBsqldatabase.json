@@ -164,7 +164,7 @@
                     "resources": [
                         {
                             "comments": "Transparent Data Encryption",
-                            "name": "[concat(parameters('instance_name'), '/Test011/Current')]",
+                            "name": "[concat(parameters('sqlDBName'), '/Test011/Current')]",
                             "type": "Microsoft.Sql/servers/databases/transparentDataEncryption",
                             "apiVersion": "2021-02-01-preview",
                             "properties": {
