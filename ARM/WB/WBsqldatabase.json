@@ -98,6 +98,33 @@
     },
     "resources": [
         {
+            "name": "[concat(variables('instance_name'), '/', variables('ServerKeyName'))]",
+            "type": "Microsoft.Sql/servers/keys",
+            "apiVersion": "2020-02-02-preview",
+            "dependsOn": [
+                "addAccessPolicy",
+                "[resourceId('Microsoft.Sql/servers', variables('instance_name'))]"
+            ],
+            "properties": {
+                "serverKeyType": "AzureKeyVault",
+                "uri": "[concat(reference(resourceId(variables('resourceGroupName'), 'Microsoft.KeyVault/vaults/', parameters('Key_vault')), '2018-02-14-preview', 'Full').properties.vaultUri, 'keys/', parameters('Key_Name'))]"
+            }
+        },
+        {
+            "type": "Microsoft.Sql/servers/encryptionProtector",
+            "apiVersion": "2021-02-01-preview",
+            "name": "[concat(variables('instance_name'), '/current')]",
+            "properties": {
+                "autoRotationEnabled": false,
+                "serverKeyName": "[variables('ServerKeyName')]",
+                "serverKeyType": "AzureKeyVault"
+            },
+            "dependsOn": [
+                "addAccessPolicy",
+                "[resourceId('Microsoft.SQL/servers/keys', variables('instance_name'), variables('ServerKeyName'))]"
+            ]
+        },
+        {
             "type": "Microsoft.Sql/servers",
             "apiVersion": "2021-02-01-preview",
             "name": "[variables('instance_name')]",
@@ -144,7 +171,7 @@
                                 "state": "Enabled"
                             },
                             "dependsOn": [
-                                "[resourceId('Microsoft.Sql/servers/databases', parameters('instance_name'), 'Test011')]"
+                                "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlDBName'), 'Test011')]"
                             ]
                         }
                     ]
@@ -191,7 +218,7 @@
                     "exp": "[reference('ConvertDateToUnixAndAdd1Year').outputs.expireDate ]"
                 },
                 "kty": "RSA",
-                "keySize":2048
+                "keySize": 2048
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Sql/servers', concat(variables('instance_name')))]"
@@ -236,33 +263,6 @@
             }
         },
         {
-            "name": "[concat(variables('instance_name'), '/', variables('ServerKeyName'))]",
-            "type": "Microsoft.Sql/servers/keys",
-            "apiVersion": "2020-02-02-preview",
-            "dependsOn": [
-                "addAccessPolicy",
-                "[resourceId('Microsoft.Sql/servers', variables('instance_name'))]"
-            ],
-            "properties": {
-                "serverKeyType": "AzureKeyVault",
-                "uri": "[concat(reference(resourceId(variables('resourceGroupName'), 'Microsoft.KeyVault/vaults/', parameters('Key_vault')), '2018-02-14-preview', 'Full').properties.vaultUri, 'keys/', parameters('Key_Name'))]"
-            }
-        },
-        {
-            "type": "Microsoft.Sql/servers/encryptionProtector",
-            "apiVersion": "2021-02-01-preview",
-            "name": "[concat(variables('instance_name'), '/current')]",
-            "properties": {
-                "autoRotationEnabled": false,
-                "serverKeyName": "[variables('ServerKeyName')]",
-                "serverKeyType": "AzureKeyVault"
-            },
-            "dependsOn": [
-                "addAccessPolicy",
-                "[resourceId('Microsoft.SQL/servers/keys', variables('instance_name'), variables('ServerKeyName'))]"
-            ]
-        },
-        {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
             "name": "ConvertDateToUnixAndAdd1Year",
@@ -272,7 +272,7 @@
                 "forceUpdateTag": "1",
                 "azPowerShellVersion": "3.0",
                 "timeout": "PT30M",
-                "arguments": "", 
+                "arguments": "",
                 "primaryScriptUri": "https://raw.githubusercontent.com/jakermey/PowerShell-Public/main/ARM/WB/WBsqldatabase.ps1",
                 "cleanupPreference": "OnSuccess",
                 "retentionInterval": "P1D"
