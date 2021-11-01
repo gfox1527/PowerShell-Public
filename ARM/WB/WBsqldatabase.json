@@ -55,6 +55,7 @@
         "subscriptionId": "[subscription().id]",
         "resourceGroupName": "[resourceGroup().name]",
         "databaseName": "myDatabase",
+        "transparentDataEncryption": "current",
         "sqlServerName": "[concat('sqlserver', uniqueString(subscription().id, resourceGroup().id))]",  
         "privateDnsZoneName": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
         "vnetName": "myVirtualNetwork",
@@ -89,14 +90,14 @@
                 "[variables('databaseName')]"
         },
         {
-            "name": "current",
-            "type": "transparentDataEncryption",
-            "apiVersion": "2017-03-01-preview",
+            "name": "[concat(variables('sqlServername'), '/master/Current')]",
+            "type": "Microsoft.Sql/servers/databases/transparentDataEncryption",
+            "apiVersion": "2021-02-01-preview",
             "properties": {
-            "status": "[parameters('transparentDataEncryption')]"
+            "state": "[parameters('transparentDataEncryption')]"
             },
             "dependsOn": [
-                "[variables('databaseName')]"
+                "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
                 ],
         },
         {
