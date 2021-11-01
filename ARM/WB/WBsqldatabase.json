@@ -55,7 +55,7 @@
         "subscriptionId": "[subscription().id]",
         "resourceGroupName": "[resourceGroup().name]",
         "databaseName": "myDatabase",
-        "sqlServerName": "[concat('sqlserver', uniqueString(subscription().id, resourceGroup().id))]",  
+        "sqlServerName": "[concat('sqltestpolicy.database.windows.net', uniqueString(subscription().id, resourceGroup().id))]",  
         "privateDnsZoneName": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
         "vnetName": "myVirtualNetwork",
         "vnetAddressPrefix": "10.0.0.0/16",
