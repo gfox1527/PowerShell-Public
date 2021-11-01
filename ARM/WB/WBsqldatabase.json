@@ -84,8 +84,8 @@
             "apiVersion": "2021-02-01-preview",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
-            ],
+                "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), '/sqlserver/Current')]"
+            ]
             "properties": {
                 "[variables('databaseName')]"
             }
