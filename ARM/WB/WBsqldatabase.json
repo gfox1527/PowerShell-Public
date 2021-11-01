@@ -88,6 +88,7 @@
             ],
             "properties": {
                 "[variables('databaseName')]"
+            }
         },
         {
             "name": "[concat(variables('sqlServername'), '/master/Current')]",
