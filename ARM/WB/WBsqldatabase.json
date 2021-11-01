@@ -99,7 +99,7 @@
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
-                ],
+                ]
         },
         {
             "name": "AllowAllMicrosoftAzureIps",
