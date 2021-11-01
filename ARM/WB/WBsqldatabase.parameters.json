@@ -2,35 +2,23 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "sqlDBName": {
-            "value": "Test011"
+        "sqlAdministratorLogin": {
+            "value": "GEN-UNIQUE"
         },
-        "location": {
-            "value": "westus2"
+        "sqlAdministratorLoginPassword": {
+            "value": "GEN-PASSWORD"
         },
-        "administratorLogin": {
-            "value": "sqladm"
+        "transparentDataEncryption": {
+            "value": "Enabled"
         },
-        "administratorLoginPassword": {
-            "value": "Password101!"
+        "privateEndpointName": {
+            "value": "sqlPrivateLink"
         },
-        "instance_name": {
-            "value": "sql011"
+        "pvtendpointdnsgroupname":{
+            "value": "sqlPrivateLink"
         },
-        "resourceGroup_Vnet": {
-            "value": "TemplateTesting"
-        },
-        "Vnet": {
-            "value": "templatetesting"
-        },
-        "Sub_Net": {
-            "value": "Db"
-        },
-        "Key_vault": {
-            "value": "templatetesting"
-        },
-        "Key_Name": {
-            "value": "sql011"
+        "keyName": {
+            "value": "myKeyName"
         }
     }
 }
