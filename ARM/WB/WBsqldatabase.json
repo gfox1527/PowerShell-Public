@@ -55,7 +55,6 @@
         "subscriptionId": "[subscription().id]",
         "resourceGroupName": "[resourceGroup().name]",
         "databaseName": "myDatabase",
-        "transparentDataEncryption": "current",
         "sqlServerName": "[concat('sqlserver', uniqueString(subscription().id, resourceGroup().id))]",  
         "privateDnsZoneName": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
         "vnetName": "myVirtualNetwork",
@@ -65,7 +64,8 @@
         "privateLinkServiceId": "[resourceID(variables('sqlServerName'), environment().suffixes.keyvaultDns)]",
         "ServerKeyName": "[concat(variables('KeyName'),'_',variables('serverKeyName'),'_current')]",
         "key_Vault": "myKeyVaultName",
-        "keyName": "myKeyName"
+        "keyName": "myKeyName",
+        "nicName": "[concat('nic', variables('sqlServerName'))]"
     },
     "resources": [
         {
@@ -79,7 +79,7 @@
             }
         },
         {
-            "name": "[variables('databaseName')]",
+            "name": "[concat(variables('sqlServerName'), '/mydatabase')]",
             "type": "Microsoft.Sql/servers/databases",
             "apiVersion": "2021-02-01-preview",
             "location": "[parameters('location')]",
@@ -111,7 +111,7 @@
                         "startIpAddress": "0.0.0.0"
                     },
                     "dependsOn": [
-                        "[variables('sqlServerName')]"
+                        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
                     ]
         },
         {
@@ -131,7 +131,7 @@
         {
             "name": "[variables('vnetName')]",
             "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2020-06-01",
+            "apiVersion": "2020-11-01",
             "location": "[parameters('location')]",
             "properties": {
                 "addressSpace": {
@@ -142,7 +142,6 @@
                 "subnets": [
                     {
                         "name": "[variables('subnetName')]",
-                        "type": "Microsoft.Networks/virtualNetworks/subnets"
                         "dependsOn": [
                             "[variables('vnetName')]"
                             "[variables('vnetAddressPrefix')]"
@@ -150,8 +149,48 @@
                         "properties": {
                             "subnetAddressPrefix": "[variables('subnetAddressPrefix')]",
                             "privateEndpointNetworkPolicies": "Disabled",
-                            "privateLinkServiceNetworkPolicies": "Enabled"
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Sql",
+                                    "locations": [
+                                        "[resourceGroup().location]"
+                                    ]
+                                }
+                            ],
+                            "virtualNetworkPeerings": [],
+                            "enableDdosProtection": false
                         },   
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('nicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), 'sql')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "privateEndpointIpConfig.56ed54d8-e167-4580-8148-1e677d5e824f",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.4",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), 'sql')]"
+                            },
+                            "primary": true,
+                            "privateIPAddressVersion": "IPv4"
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableAcceleratedNetworking": false,
+                "enableIPForwarding": false
+            }
         },
         {
             "name": "[parameters('privateEndpointName')]",
@@ -181,12 +220,20 @@
         {
             "name": "[variables('privateDnsZoneName')]",
             "type": "Microsoft.Network/privateDnsZones",
-            "apiVersion": "2020-01-01",
+            "apiVersion": "2018-09-01",
             "location": "global",
             "dependsOn": [
                 "[variables('vnetName')]"
             ],
-            "properties": ""
+            "properties": {
+                "maxNumberOfRecordSets": 25000,
+                "maxNumberOfVirtualNetworkLinks": 1000,
+                "maxNumberOfVirtualNetworkLinksWithRegistration": 100,
+                "numberOfRecordSets": 2,
+                "numberOfVirtualNetworkLinks": 1,
+                "numberOfVirtualNetworkLinksWithRegistration": 0,
+                "provisioningState": "Succeeded"
+            }
         },
         {
             "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateDnsZoneName'), '-link')]",
@@ -201,6 +248,42 @@
                 "registrationEnabled": false,
                 "virtualNetwork": {
                     "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/A",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateDnsZoneName'), '/sqlserver')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
+            ],
+            "properties": {
+                "ttl": 3600,
+                "aRecords": [
+                    {
+                        "ipv4Address": "10.0.0.4"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/SOA",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateDnsZoneName'), '/@')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
+            ],
+            "properties": {
+                "ttl": 3600,
+                "soaRecord": {
+                    "email": "azureprivatedns-host.microsoft.com",
+                    "expireTime": 2419200,
+                    "host": "azureprivatedns.net",
+                    "minimumTtl": 10,
+                    "refreshTime": 3600,
+                    "retryTime": 300,
+                    "serialNumber": 1
                 }
             }
         },
